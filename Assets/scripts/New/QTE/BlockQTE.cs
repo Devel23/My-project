@@ -3,38 +3,47 @@ using UnityEngine.InputSystem;
 
 public class BlockQTE : MonoBehaviour
 {
-    [SerializeField] private GameObject m_VisualAreaQTE;
-    [SerializeField] private GameObject m_VisualSwordQTE;
-    [SerializeField] private GameObject m_visual;
-    [SerializeField] private Transform m_swordIndecator;
-    [SerializeField] private Transform m_target;
+    [Header("UI parametrs")]
+    [SerializeField] private RectTransform m_areaGreenCircle;
+    [SerializeField] private RectTransform m_sword;
+    [SerializeField] private RectTransform m_targetCenter;
+    [SerializeField] private GameObject m_visualQTE;
 
     [SerializeField] private BlockData m_blockData; //ser for test
-    private float m_rangeQTE;
-    private float m_speed;
+    
+    private float m_flyDuration;
+    private float m_greenRadius;
+    private float m_redRadius;
+
+    private float m_currentFlyTime;
     private bool isQTE;
     private Vector2 startPos;
+    private Vector2 targetPos;
 
     private void Awake()
     {
-        startPos = m_VisualSwordQTE.transform.position;
+        startPos = m_sword.anchoredPosition;
+        targetPos = m_targetCenter.anchoredPosition;
     }
     private void Start()
     {
         SetQTE(m_blockData);
-        Debug.Log($"Press + {Vector2.Distance(m_swordIndecator.position, m_target.position)} " +
-                   $"\n{(Vector2.Distance(m_swordIndecator.position, m_target.position)) / 33.3f}");
     }
     private void SetQTE(BlockData blockData)
     {
-        m_blockData = blockData;
-        m_speed = blockData.speed;
-        m_rangeQTE = blockData.Radius;
+        m_visualQTE.SetActive(true);
 
-        m_VisualSwordQTE.transform.position = startPos;
-        m_visual.SetActive(true);
-        m_VisualAreaQTE.transform.localScale = new Vector2(m_rangeQTE, m_rangeQTE);
+        if (blockData != null)
+            m_areaGreenCircle.localScale = new Vector2(blockData.Radius, blockData.Radius);
 
+        float originalGreenWidth = m_areaGreenCircle.rect.width;
+        float greenScale = m_areaGreenCircle.localScale.x;
+        m_greenRadius = (originalGreenWidth * greenScale) * 0.5f;
+        m_redRadius = m_targetCenter.rect.width * 0.5f;
+
+        m_sword.anchoredPosition = startPos;
+        m_currentFlyTime = 0f;
+        m_flyDuration = blockData.Duration;
         isQTE = true;
     }
 
@@ -48,19 +57,20 @@ public class BlockQTE : MonoBehaviour
     {
         if (isQTE)
         {
-            if (Vector2.Distance(m_swordIndecator.position, m_target.position) <= 0.01f)
-            {
-                Debug.Log("Достигнута цель!");
-                EndQTE();
-                LooseQTE();
-                return;
-                
-            }
+            float currentDistance = Vector2.Distance(m_sword.anchoredPosition, m_targetCenter.anchoredPosition);
 
-            m_swordIndecator.position = Vector2.MoveTowards(
-                m_swordIndecator.position,
-                m_target.position,
-                m_speed * Time.deltaTime);
+            m_currentFlyTime += Time.deltaTime;
+            float t = Mathf.Clamp01(m_currentFlyTime / m_flyDuration);
+
+            Vector2 newPos = Vector2.Lerp(startPos, targetPos, t);
+            m_sword.anchoredPosition = newPos;
+
+            if (currentDistance <= m_redRadius || t >= 1f)
+            {
+                Debug.Log("Меч достиг центра — провал!");
+                LooseQTE();
+                EndQTE();
+            }
         }
     }
 
@@ -68,15 +78,21 @@ public class BlockQTE : MonoBehaviour
     {
         if (Keyboard.current.spaceKey.wasPressedThisFrame) {
 
-            Debug.Log("Press");
+            float currentDistance = Vector2.Distance(m_sword.anchoredPosition, m_targetCenter.anchoredPosition);
 
-            if ((Vector2.Distance(m_swordIndecator.position, m_target.position)) / 33.3f < m_rangeQTE)
+            Debug.Log($"Нажатие! Расстояние до центра: {currentDistance} (зелёный: {m_greenRadius})");
+
+            if (currentDistance <= m_greenRadius)
             {
+                // Попадание в зелёную зону — парирование
+                Debug.Log("✅ Успех: парирование в зелёной зоне!");
                 EndQTE();
-                Debug.Log($"Press + {Vector2.Distance(m_swordIndecator.position, m_target.position)} " +
-                    $"\n{(Vector2.Distance(m_swordIndecator.position, m_target.position)) / 33.3f}" );
-                WinQTE();
-                return;
+            }
+            else
+            {
+                // Нажатие слишком рано — меч ещё далеко
+                Debug.Log("❌ Провал: нажатие мимо зон (слишком рано)!");
+                EndQTE();
             }
         }
     }
@@ -84,6 +100,7 @@ public class BlockQTE : MonoBehaviour
     public void EndQTE()
     {
         isQTE = false;
+        m_visualQTE.SetActive(false);
     }
 
     private void WinQTE()
