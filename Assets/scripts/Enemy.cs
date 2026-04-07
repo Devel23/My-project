@@ -1,55 +1,6 @@
-using UnityEngine;
-
-public class Enemy : MonoBehaviour
-{
-    public string enemyName = "Enemy";
-    public int health = 50;
-    public float xpReward = 25;
-    public int coinReward = 10;
-
-    [Header("Resistances")]
-    public float resPhys;
-    public float resMag;
-    public float resFire;
-    public float resHoly;
-    public float resLight;
-
-    private SpriteRenderer spriteRend;
-
-    private void Start()
+using UnityEngine;  public class Enemy : MonoBehaviour {     public string enemyName = "Enemy";     public int health = 50;     public float xpReward = 25;     public int coinReward = 10;      [Header("Resistances")]     public float resPhys;     public float resMag;     public float resFire;     public float resHoly;     public float resLight;      [Header("Attack Settings")]
+    public int damage = 10;
+    public BlockData qteSettings;      [Header("Highlight Settings")]     public float flashSpeed = 2f;     [Range(0f, 1f)] public float maxWhiteIntensity = 0.7f;     private bool isSelected = false;      private SpriteRenderer spriteRend;      private void Start()     {         spriteRend = GetComponent<SpriteRenderer>();     }     private void Update()     {         if (isSelected && spriteRend != null)         {             float lerpFactor = Mathf.PingPong(Time.time * flashSpeed, maxWhiteIntensity);             spriteRend.color = Color.Lerp(Color.white, new Color(2f, 2f, 2f, 1f), lerpFactor);         }     }     public void TakeDamage(Weapon w)     {         float totalDmg = 0;         totalDmg += w.finalPhys * (1f - resPhys);         totalDmg += w.finalMag * (1f - resMag);         totalDmg += w.finalFire * (1f - resFire);         totalDmg += w.finalHoly * (1f - resHoly);         totalDmg += w.finalLight * (1f - resLight);          int finalDamageInt = Mathf.Max(1, Mathf.RoundToInt(totalDmg));         health -= finalDamageInt;          if (health <= 0) Die();     }      private void Die()     {         Player p = FindFirstObjectByType<Player>();         if (p != null)         {             p.AddXP(xpReward);             p.coins += coinReward;         }         Destroy(gameObject);     }      public void SetHighlight(bool active)     {         isSelected = active;         if (spriteRend == null) spriteRend = GetComponent<SpriteRenderer>();          if (!active)         {             spriteRend.color = Color.white;         }     }     public BlockData GetAttackData()
     {
-        spriteRend = GetComponent<SpriteRenderer>();
-    }
-
-    public void TakeDamage(Weapon w)
-    {
-        float totalDmg = 0;
-        totalDmg += w.finalPhys * (1f - resPhys);
-        totalDmg += w.finalMag * (1f - resMag);
-        totalDmg += w.finalFire * (1f - resFire);
-        totalDmg += w.finalHoly * (1f - resHoly);
-        totalDmg += w.finalLight * (1f - resLight);
-
-        int finalDamageInt = Mathf.Max(1, Mathf.RoundToInt(totalDmg));
-        health -= finalDamageInt;
-
-        if (health <= 0) Die();
-    }
-
-    private void Die()
-    {
-        Player p = FindFirstObjectByType<Player>();
-        if (p != null)
-        {
-            p.AddXP(xpReward);
-            p.coins += coinReward;
-        }
-        Destroy(gameObject);
-    }
-
-    public void SetHighlight(bool active)
-    {
-        if (spriteRend == null) spriteRend = GetComponent<SpriteRenderer>();
-        spriteRend.color = active ? Color.red : Color.white;
-    }
-}
+        return qteSettings;
+    } }

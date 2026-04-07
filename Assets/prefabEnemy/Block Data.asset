@@ -10,8 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ce8bd17e389aef64ebcd438bedeb13f9, type: 3}
-  m_Name: Standart Block Data
+  m_Name: Block Data
   m_EditorClassIdentifier: Assembly-CSharp::BlockData
-  m_rangeQTE: 1.24
-  m_speed: 3
-  m_Name: 
+  m_rangeQTE: 1.0191312
+  m_duration: 1.92

@@ -1,5 +1,6 @@
-using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class BattleManager : MonoBehaviour
@@ -10,10 +11,12 @@ public class BattleManager : MonoBehaviour
     public GameObject[] enemyPool;
     public Transform[] spawnPoints;
 
+    [Header("QTE Settings")]
+    public BlockQTE blockQTE;
+
     private List<Enemy> activeEnemies = new();
     private int currentTargetIndex = 0;
     public Enemy selectedEnemy;
-
     void Start()
     {
         if (player == null) player = FindFirstObjectByType<Player>();
@@ -39,11 +42,10 @@ public class BattleManager : MonoBehaviour
     void SpawnEnemies()
     {
         activeEnemies.Clear();
-        for (int i = 0; i < spawnPoints.Length; i++)
+        foreach (var point in spawnPoints)
         {
             GameObject randomPrefab = enemyPool[Random.Range(0, enemyPool.Length)];
-            GameObject newEnemy = Instantiate(randomPrefab, spawnPoints[i].position, Quaternion.identity);
-
+            GameObject newEnemy = Instantiate(randomPrefab, point.position, Quaternion.identity);
             Enemy e = newEnemy.GetComponent<Enemy>();
             if (e != null) activeEnemies.Add(e);
         }
@@ -54,7 +56,6 @@ public class BattleManager : MonoBehaviour
     {
         activeEnemies.RemoveAll(e => e == null);
         if (activeEnemies.Count == 0) return;
-
         currentTargetIndex = (currentTargetIndex + direction + activeEnemies.Count) % activeEnemies.Count;
         UpdateSelection();
     }
@@ -62,16 +63,13 @@ public class BattleManager : MonoBehaviour
     void UpdateSelection()
     {
         activeEnemies.RemoveAll(e => e == null);
-
         if (activeEnemies.Count == 0)
         {
             selectedEnemy = null;
-            SpawnEnemies(); 
+            SpawnEnemies();
             return;
         }
-
         currentTargetIndex = Mathf.Clamp(currentTargetIndex, 0, activeEnemies.Count - 1);
-
         for (int i = 0; i < activeEnemies.Count; i++)
         {
             bool isSelected = (i == currentTargetIndex);
@@ -90,7 +88,23 @@ public class BattleManager : MonoBehaviour
         {
             player.weapon.RefreshFinalDamage(player);
             selectedEnemy.TakeDamage(player.weapon);
+
+            Enemy currentAttacker = selectedEnemy;
             Invoke("UpdateSelection", 0.1f);
+
+            if (currentAttacker != null && currentAttacker.health > 0)
+            {
+                StartCoroutine(EnemyTurnRoutine(currentAttacker));
+            }
+        }
+    }
+
+    IEnumerator EnemyTurnRoutine(Enemy attacker)
+    {
+        yield return new WaitForSeconds(1.0f);
+        if (attacker != null && blockQTE != null && attacker.qteSettings != null)
+        {
+            blockQTE.ActivateBlock(attacker.qteSettings);
         }
     }
 }
